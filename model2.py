@@ -50,71 +50,81 @@ def the_model() -> Model:
         red_cube_at = "pose_2",  # pose_1, pose_2, pose_3, r1_gripper, r1_buffer, r2_gripper, r2_buffer
         blue_cube_at = "pose_3",  # pose_1, pose_2, pose_3, r1_gripper, r1_buffer, r2_gripper, r2_buffer
     )
-
+    rob = [1,2]
     ops = {}
-    
-  # Move to above operation for both robots
-
-    for r in ["r1", "r2"]:
-        for pos in ["pose_1", "pose_2", "pose_3", f"{r}_buffer"]:
-            not_chosen_robot = "r2" if r == "r1" else "r1"
-            ops[f"{r}_op_move_to_{pos}"] = Operation(
-                name=f"{r}_op_move_to_{pos}",
-                precondition=Transition("pre", g(f"!{r}_robot_run && {r}_robot_state == initial && {r}_robot_pose == above_{pos} && {not_chosen_robot}_robot_pose != above_{pos} && {not_chosen_robot}_robot_pose != {pos}"), 
-                a(f"{r}_robot_command = move_j, {r}_robot_run, {r}_robot_goal_frame = {pos}")),
-                postcondition=Transition("post", g(f"{r}_robot_state == done"), 
-                a(f"!{r}_robot_run, {r}_robot_pose <- {pos}")),
-                effects=(),
-                to_run=Transition.default()
-            )
-
-    for r in ["r1", "r2"]:
-        for pos in ["pose_1", "pose_2", "pose_3", f"{r}_buffer"]:
-            not_chosen_robot = "r2" if r == "r1" else "r1"
-            ops[f"{r}_op_move_to_above_{pos}"] = Operation(
-                name=f"{r}_op_move_to_above_{pos}",
-                precondition=Transition("pre", g(f"!{r}_robot_run && {r}_robot_state == initial && {r}_robot_pose != above_{pos} && {not_chosen_robot}_robot_pose != above_{pos} && {not_chosen_robot}_robot_pose != {pos}"), 
-                a(f"{r}_robot_command = move_j, {r}_robot_run, {r}_robot_goal_frame = above_{pos}")),
-                postcondition=Transition("post", g(f"{r}_robot_state == done"), 
-                a(f"!{r}_robot_run, {r}_robot_pose <- above_{pos}")),
-                effects=(),
-                to_run=Transition.default()
-            )
-
-    # Pick up operation for both robots
-    for r in ["r1", "r2"]:
-        for colour in ["blue", "red", "green"]:
-            for pos in ["pose_1", "pose_2", "pose_3", f"{r}_buffer"]:
-                not_chosen_robot = "r2" if r == "r1" else "r1"
-                ops[f"{r}_op_pick_up_{colour}_from_{pos}"] = Operation(
-                    name=f"{r}_op_pick_up_{colour}_from_{pos}",
-                    precondition=Transition("pre", 
-                        g(f"{r}_robot_pose == {pos} && {colour}_cube_at == {pos} && !{r}_gripper_run && {colour}_cube_at != {r}_gripper && !{r}_robot_run && {not_chosen_robot}_robot_pose != {pos} && {not_chosen_robot}_robot_pose != above_{pos}"), 
-                        a(f"{r}_gripper_run, {r}_gripper_command = pick_{colour}")),
-                    postcondition=Transition("post", g(f"{r}_gripper_command == done"), 
-                        a(f"!{r}_gripper_run, {colour}_cube_at <- {r}_gripper")),
-                    effects=(),
-                    to_run=Transition.default()
+    for robots in rob: 
+        for pos in ["pose_1","pose_2","pose_3","r1_buffer","r2_buffer"]:
+            for colour in ["blue","red","green"]:
+                ops[f"op_r{robots}_pick_up_{colour}_from_{pos}"] = Operation(
+                    name = f"op_r{robots}_pick_up_{colour}_from_{pos}",
+                    precondition = Transition("pre", 
+                    g(f"r{robots}_robot_pose == {pos} && {colour}_cube_at == {pos} && !r{robots}_gripper_run && blue_cube_at != r{robots}_gripper && red_cube_at != r{robots}_gripper && green_cube_at != r{robots}_gripper && !r{robots}_robot_run"), 
+                    a(f"r{robots}_gripper_run, r{robots}_gripper_command = pick_{colour}")),
+                    postcondition = Transition("post", 
+                    g(f"r{robots}_gripper_command == done"), 
+                    a(f"!r{robots}_gripper_run, {colour}_cube_at = r{robots}_gripper")),
+                    effects = (),
+                    to_run = Transition.default()
+                )  
+            
+                ops[f"op_r{robots}_place_{colour}_at_{pos}"] = Operation(
+                    name = f"op_r{robots}_place_{colour}_at_{pos}",
+                    precondition = Transition("pre", 
+                    g(f"r{robots}_robot_pose == {pos} && blue_cube_at != {pos} && {colour}_cube_at == r{robots}_gripper && red_cube_at != {pos} && green_cube_at != {pos}"), 
+                    a(f"r{robots}_gripper_run, r{robots}_gripper_command = place_{colour}")),
+                    postcondition = Transition("post", 
+                    g(f"r{robots}_gripper_command == done"), 
+                    a(f"!r{robots}_gripper_run, {colour}_cube_at = {pos}")),
+                    effects = (),
+                    to_run = Transition.default()
                 )
-
-    # Place at operation for both robots
-    for r in ["r1", "r2"]:
-        for colour in ["blue", "red", "green"]:
-            for pos in ["pose_1", "pose_2", "pose_3", f"{r}_buffer"]:
-                not_chosen_robot = "r2" if r == "r1" else "r1"
-                ops[f"{r}_op_place_{colour}_at_{pos}"] = Operation(
-                    name=f"{r}_op_place_{colour}_at_{pos}",
-                    precondition=Transition("pre", 
-                        g(f"{r}_robot_pose == {pos} && {colour}_cube_at == {r}_gripper && {colour}_cube_at != {pos} && {r}_gripper_run && {not_chosen_robot}_robot_pose != {pos} && {not_chosen_robot}_robot_pose != above_{pos}"), 
-                        a(f"{r}_gripper_run, {r}_gripper_command = place_{colour}")),
-                    postcondition=Transition("post", g(f"{r}_gripper_command == done"), 
-                        a(f"!{r}_gripper_run, {colour}_cube_at <- {pos}")),
-                    effects=(),
-                    to_run=Transition.default()
-                )
-
-        # Add transitions for free operations
-    transitions = []
+    for pos in ["pose_1","pose_2","pose_3","r1_buffer", "r2_buffer"]:
+        for colour in ["blue","red","green"]:
+            ops[f"op_r1_move_to_{pos}"] = Operation(
+                name = f"op_r1_move_to_{pos}",
+                precondition = Transition("pre", 
+                g(f"!r1_robot_run && r1_robot_state == initial && r1_robot_pose == above_{pos} && r2_robot_pose != {pos} && r1_robot_pose != above_{pos}"), 
+                a(f"r1_robot_command = move_j, r1_robot_run, r1_robot_goal_frame = {pos}")),
+                postcondition = Transition("post", 
+                g(f"r1_robot_state == done"), 
+                a(f"!r1_robot_run, r1_robot_pose <- {pos}")),
+                effects = (),
+                to_run = Transition.default()
+        )   
+            ops[f"op_r1_move_to_above_{pos}"] = Operation(
+                name = f"op_r1_move_to_above_{pos}",
+                precondition = Transition("pre", 
+                g(f"!r1_robot_run && r1_robot_state == initial && r1_robot_pose != above_{pos} && r2_robot_pose != above_{pos}&& r2_robot_pose != {pos}"), 
+                a(f"r1_robot_command = move_j, r1_robot_run, r1_robot_goal_frame = above_{pos}")),
+                postcondition = Transition("post", 
+                g(f"r1_robot_state == done"), 
+                a(f"!r1_robot_run, r1_robot_pose = above_{pos}")),
+                effects = (),
+                to_run = Transition.default()
+        )
+            ops[f"op_r2_move_to_{pos}"] = Operation(
+                name = f"op_r2_move_to_{pos}",
+                precondition = Transition("pre", 
+                g(f"!r2_robot_run && r2_robot_state == initial && r2_robot_pose == above_{pos} && r1_robot_pose != {pos} && r1_robot_pose != above_{pos}"), 
+                a(f"r2_robot_command = move_j, r2_robot_run, r2_robot_goal_frame = {pos}")),
+                postcondition = Transition("post", 
+                g(f"r2_robot_state == done"), 
+                a(f"!r2_robot_run, r2_robot_pose <- {pos}")),
+                effects = (),
+                to_run = Transition.default()
+        )   
+            ops[f"op_r2_move_to_above_{pos}"] = Operation(
+                name = f"op_r2_move_to_above_{pos}",
+                precondition = Transition("pre", 
+                g(f"!r2_robot_run && r2_robot_state == initial && r2_robot_pose != above_{pos} && r1_robot_pose != above_{pos} && r1_robot_pose != {pos}"), 
+                a(f"r2_robot_command = move_j, r2_robot_run, r2_robot_goal_frame = above_{pos}")),
+                postcondition = Transition("post", 
+                g(f"r2_robot_state == done"), 
+                a(f"!r2_robot_run, r2_robot_pose = above_{pos}")),
+                effects = (),
+                to_run = Transition.default()
+        )
+    transitions: List[Transition] = []
 
     return Model(
         initial_state,
