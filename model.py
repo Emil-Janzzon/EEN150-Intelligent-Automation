@@ -50,7 +50,9 @@ def the_model() -> Model:
             # Create Operation instances directly in the ops dictionary
             ops[f"op_move_to_{pos}"] = Operation(
                 name=f"op_move_to_{pos}",
-                precondition=Transition("pre", g(f"!robot_run && robot_state == initial && robot_pose == above_{pos}"), a(f"robot_command = move_j, robot_run, robot_goal_frame = {pos}")),
+                precondition=Transition("pre", 
+                g(f"!robot_run && robot_state == initial && robot_pose == above_{pos}"), 
+                a(f"robot_command = move_j, robot_run, robot_goal_frame = {pos}")),
                 postcondition=Transition("post", g(f"robot_state == done"), a(f"!robot_run, robot_pose <- {pos}")),
                 effects=(),
                 to_run=Transition.default()
@@ -58,7 +60,9 @@ def the_model() -> Model:
             #Moves to above one position located in pos array
             ops[f"op_move_to_above_{pos}"] = Operation(
                 name=f"op_move_to_above_{pos}",
-                precondition=Transition("pre", g(f"!robot_run && robot_state == initial && robot_pose != above_{pos}"), a(f"robot_command = move_j, robot_run, robot_goal_frame = above_{pos}")),
+                precondition=Transition("pre", 
+                g(f"!robot_run && robot_state == initial && robot_pose != above_{pos}"), 
+                a(f"robot_command = move_j, robot_run, robot_goal_frame = above_{pos}")),
                 postcondition=Transition("post", g(f"robot_state == done"), a(f"!robot_run, robot_pose <- above_{pos}")),
                 effects=(),
                 to_run=Transition.default()

@@ -50,40 +50,64 @@ def the_model() -> Model:
         red_cube_at = "pose_2",  # pose_1, pose_2, pose_3, r1_gripper, r1_buffer, r2_gripper, r2_buffer
         blue_cube_at = "pose_3",  # pose_1, pose_2, pose_3, r1_gripper, r1_buffer, r2_gripper, r2_buffer
     )
-    rob = [1,2]
     ops = {}
-    for robots in rob: 
-        for pos in ["pose_1","pose_2","pose_3","r1_buffer","r2_buffer"]:
-            for colour in ["blue","red","green"]:
-                ops[f"op_r{robots}_pick_up_{colour}_from_{pos}"] = Operation(
-                    name = f"op_r{robots}_pick_up_{colour}_from_{pos}",
+    for pos in ["pose_1","pose_2","pose_3","r1_buffer"]:
+        for colour in ["blue","red","green"]:
+                ops[f"op_r1_pick_up_{colour}_from_{pos}"] = Operation(
+                    name = f"op_r1_pick_up_{colour}_from_{pos}",
                     precondition = Transition("pre", 
-                    g(f"r{robots}_robot_pose == {pos} && {colour}_cube_at == {pos} && !r{robots}_gripper_run && blue_cube_at != r{robots}_gripper && red_cube_at != r{robots}_gripper && green_cube_at != r{robots}_gripper && !r{robots}_robot_run"), 
-                    a(f"r{robots}_gripper_run, r{robots}_gripper_command = pick_{colour}")),
+                    g(f"r1_robot_pose == {pos} && {colour}_cube_at == {pos} && !r1_gripper_run && blue_cube_at != r1_gripper && red_cube_at != r1_gripper && green_cube_at != r1_gripper && !r1_robot_run"), 
+                    a(f"r1_gripper_run, r1_gripper_command = pick_{colour}")),
                     postcondition = Transition("post", 
-                    g(f"r{robots}_gripper_command == done"), 
-                    a(f"!r{robots}_gripper_run, {colour}_cube_at = r{robots}_gripper")),
+                    g(f"r1_gripper_command == done"), 
+                    a(f"!r1_gripper_run, {colour}_cube_at = r1_gripper")),
                     effects = (),
                     to_run = Transition.default()
                 )  
             
-                ops[f"op_r{robots}_place_{colour}_at_{pos}"] = Operation(
-                    name = f"op_r{robots}_place_{colour}_at_{pos}",
+                ops[f"op_r1_place_{colour}_at_{pos}"] = Operation(
+                    name = f"op_r1_place_{colour}_at_{pos}",
                     precondition = Transition("pre", 
-                    g(f"r{robots}_robot_pose == {pos} && blue_cube_at != {pos} && {colour}_cube_at == r{robots}_gripper && red_cube_at != {pos} && green_cube_at != {pos}"), 
-                    a(f"r{robots}_gripper_run, r{robots}_gripper_command = place_{colour}")),
+                    g(f"r1_robot_pose == {pos} && blue_cube_at != {pos} && {colour}_cube_at == r1_gripper && red_cube_at != {pos} && green_cube_at != {pos}"), 
+                    a(f"r1_gripper_run, r1_gripper_command = place_{colour}")),
                     postcondition = Transition("post", 
-                    g(f"r{robots}_gripper_command == done"), 
-                    a(f"!r{robots}_gripper_run, {colour}_cube_at = {pos}")),
+                    g(f"r1_gripper_command == done"), 
+                    a(f"!r1_gripper_run, {colour}_cube_at = {pos}")),
                     effects = (),
                     to_run = Transition.default()
                 )
-    for pos in ["pose_1","pose_2","pose_3","r1_buffer", "r2_buffer"]:
+    
+    for pos in ["pose_1","pose_2","pose_3","r2_buffer"]:
         for colour in ["blue","red","green"]:
+                ops[f"op_r2_pick_up_{colour}_from_{pos}"] = Operation(
+                    name = f"op_r2_pick_up_{colour}_from_{pos}",
+                    precondition = Transition("pre", 
+                    g(f"r2_robot_pose == {pos} && {colour}_cube_at == {pos} && !r2_gripper_run && blue_cube_at != r2_gripper && red_cube_at != r2_gripper && green_cube_at != r2_gripper && !r2_robot_run"), 
+                    a(f"r2_gripper_run, r2_gripper_command = pick_{colour}")),
+                    postcondition = Transition("post", 
+                    g(f"r2_gripper_command == done"), 
+                    a(f"!r2_gripper_run, {colour}_cube_at = r2_gripper")),
+                    effects = (),
+                    to_run = Transition.default()
+                )  
+            
+                ops[f"op_r2_place_{colour}_at_{pos}"] = Operation(
+                    name = f"op_r2_place_{colour}_at_{pos}",
+                    precondition = Transition("pre", 
+                    g(f"r2_robot_pose == {pos} && blue_cube_at != {pos} && {colour}_cube_at == r2_gripper && red_cube_at != {pos} && green_cube_at != {pos}"), 
+                    a(f"r2_gripper_run, r2_gripper_command = place_{colour}")),
+                    postcondition = Transition("post", 
+                    g(f"r2_gripper_command == done"), 
+                    a(f"!r2_gripper_run, {colour}_cube_at = {pos}")),
+                    effects = (),
+                    to_run = Transition.default()
+                )
+
+    for pos in ["pose_1","pose_2","pose_3","r1_buffer"]:
             ops[f"op_r1_move_to_{pos}"] = Operation(
                 name = f"op_r1_move_to_{pos}",
                 precondition = Transition("pre", 
-                g(f"!r1_robot_run && r1_robot_state == initial && r1_robot_pose == above_{pos} && r2_robot_pose != {pos} && r1_robot_pose != above_{pos}"), 
+                g(f"!r1_robot_run && r1_robot_state == initial && r1_robot_pose == above_{pos} && r2_robot_pose != {pos} && r2_robot_pose != above_{pos}"), 
                 a(f"r1_robot_command = move_j, r1_robot_run, r1_robot_goal_frame = {pos}")),
                 postcondition = Transition("post", 
                 g(f"r1_robot_state == done"), 
@@ -102,6 +126,7 @@ def the_model() -> Model:
                 effects = (),
                 to_run = Transition.default()
         )
+    for pos in ["pose_1","pose_2","pose_3","r2_buffer"]:
             ops[f"op_r2_move_to_{pos}"] = Operation(
                 name = f"op_r2_move_to_{pos}",
                 precondition = Transition("pre", 
